@@ -5,16 +5,17 @@ import { Sala } from "./clases/sala";
 
 const app = express();
 
-app.set('port', process.env.PORT || 4000)
+const PORT = process.env.PORT || 4000;
+
 const cors = require('cors');
 app.use(cors({
   origin: '*', //Or some origins you can specify
   optionsSuccessStatus: 200
 }));
 
-const server = app.listen(app.get('port'), ()=> {
+const server = app.listen(PORT, ()=> {
 
-    console.log(`server escuchando en puerto: ${app.get('port')}`);
+    console.log(`server escuchando en puerto: ${PORT}`);
 
 })
 
