@@ -12,7 +12,6 @@
   "engines": {
     "node": "13.12.0"
   },
-  "type": "module",
   "author": "javier diaz",
   "license": "ISC",
   "dependencies": {
