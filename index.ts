@@ -7,12 +7,6 @@ const app = express();
 
 const PORT = process.env.PORT || 4000;
 
-const cors = require('cors');
-app.use(cors({
-  origin: '*', //Or some origins you can specify
-  optionsSuccessStatus: 200
-}));
-
 const server = app.listen(PORT, ()=> {
 
     console.log(`server escuchando en puerto: ${PORT}`);
