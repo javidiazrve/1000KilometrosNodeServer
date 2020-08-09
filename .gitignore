@@ -44,7 +44,10 @@ bower_components
 build/Release
 
 # Dependency directories
-node_modules/
+node_modules/*
+!node_modules/@types
+node_modules/@types/*
+!node_modules/@types/socket.io
 
 # Optional npm cache directory
 .npm
