@@ -64,7 +64,9 @@
     "forceConsistentCasingInFileNames": true  /* Disallow inconsistently-cased references to the same file. */
   },
   "include": [
-    "src/**/*.ts" /* Include every ts file in source folder */
+    "*.ts", /* Include every ts file in source folder */
+    "clases/*.ts",
+    "controladores/*.ts"
   ],
   "exclude": [
     "node_modules" /* exclude everything in  node_modules */

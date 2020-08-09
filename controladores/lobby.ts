@@ -1,84 +1,95 @@
-
-import {conteoSala, listaRooms} from '../index'
 import { Sala } from '../clases/sala';
+import { Server, Socket } from 'socket.io';
 import { Jugador } from '../clases/jugador';
+import { Partida } from '../clases/partida';
 
-var lobby = (socket, io) => {
+var sala = 2000;
 
-    var sala: Sala;
+var Lobby = (socket: Socket, io: Server) => {
 
-    var jugador: Jugador;
-    
+    var rooms = io.sockets.adapter.rooms;
+    var salaActual: Sala;
+    var jugadorActual: Jugador;
+
+    //************** ACCIONES FUERA DE SALA **************
+
     socket.on('crearSala', (data:any) => {
         
-        jugador = new Jugador(data.nickname);
-        
-        socket.join(this.conteoSala.toString());
+        const salaID = sala.toString();
+        sala = sala + 1;
 
-        const salaModelo = {
-            id: this.conteoSala,
-            admin: data.nickname,
-            jugadores: [jugador]
-        }
-
-        listaRooms[this.this.conteoSala.toString()].sala = new Sala(salaModelo);
+        jugadorActual = new Jugador(data.nickname);
+        socket.jugador = jugadorActual;
+        socket.room = salaID;
+        socket.join(salaID);
         
-        sala = listaRooms[this.conteoSala.toString()].sala;
+        salaActual = new Sala({
+            id: salaID,
+            admin: jugadorActual.nickname,
+            jugadores: [jugadorActual]
+        });
         
-        socket.emit('entre', sala);
+        rooms[salaID].sala = salaActual;
 
-        this.this.conteoSala++;
+        socket.emit('nueva-sala', salaActual);
 
     })
 
-    socket.on('joinSala', (data:any)=> {
+    socket.on('joinSala', (data: any) => {
 
-        jugador = new Jugador(data.nickname);
-
+        jugadorActual = new Jugador(data.nickname);
+        socket.jugador = jugadorActual;
+        socket.room = data.sala;
         socket.join(data.sala);
 
-        listaRooms[data.sala].sala.jugadores.push(jugador);
+        salaActual = rooms[data.sala].sala;
 
-        sala = listaRooms[data.sala].sala;
-
-        socket.emit('entre', sala)
-
-        socket.to(sala.id).emit('newPlayer', {room: sala, player: data.nickname});
+        salaActual.nuevoJugador(jugadorActual, socket);
 
     })
 
-    socket.on('abandonarSala', ()=>{
+    socket.on('validar-sala', (room: any)=>{
 
-        sacarJugador(jugador.nickname);
+        var existe = false;
 
-        socket.to(sala.id).emit('playerLeft', {room: sala, player: jugador.nickname});
-        
-        socket.leave(sala.id);
-
-        console.log(listaRooms);
-
-    })
-
-    socket.on('ready', (jugador:any) => {
-
-        listaRooms[sala.id].sala.getReady(jugador);
-
-        socket.emit('listos', {room: listaRooms[sala.id].sala});
-        socket.to(sala.id).emit('listos', {room: listaRooms[sala.id].sala});
-
-    });
-
-    function sacarJugador(nickname: string){
-
-        if(listaRooms[sala.id].sala.jugadores.length > 1){
-        
-            listaRooms[sala.id].sala.jugadores.splice(listaRooms[sala.id].sala.jugadores.findIndex((el:any) => el.nickname === nickname),1);
-            
-            if(listaRooms[sala.id].sala.)
+        if(rooms[room]){
+            existe = true;
+        }else{
+            existe = false;
         }
+
+        socket.emit('sala-validada', {existe: existe});
+
+    })
+
+    //************** FIN FUERA DE SALA **************
+
+    //************** ACCIONES DENTRO DE SALA **************
+
+    
+    socket.on('ready', function () {
         
-    }
+        salaActual.listo(jugadorActual.nickname, socket);
+        
+    })
+    
+    socket.on('empezarPartida', ()=>{
+        
+        io.sockets.adapter.rooms[salaActual.id].partida = new Partida({
+            id: io.sockets.adapter.rooms[salaActual.id].sala.id,
+            jugadores: io.sockets.adapter.rooms[salaActual.id].sala.jugadores
+        })
+        
+        salaActual.irMesa(socket);
+        
+    })
+    
+    socket.on('abandonarSala', function () {
+
+        salaActual.dejarSala(jugadorActual.nickname, socket);
+
+    })
 
 }
 
-module.exports = lobby;
+module.exports = Lobby;
