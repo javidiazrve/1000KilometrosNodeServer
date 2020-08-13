@@ -1,8 +1,6 @@
-import { Sala } from "./sala";
 import { Jugador } from './jugador';
 import { Socket } from "socket.io";
-import { Server } from "socket.io";
-import { Mazo, Carta } from "../interfaces";
+import { Carta } from "../interfaces";
 
 export class Partida {
 
@@ -28,7 +26,9 @@ export class Partida {
     // Funcion para emitir a todos algo
     emit(funcion: string, data: any, socket: Socket) {
         socket.broadcast.to(this.salaID).emit(funcion, data);
-        socket.emit(funcion, data);
+        if(funcion !== 'abandono'){
+            socket.emit(funcion, data);
+        }
     }
 
     // Se llama para declarar que el jugador esta sentado y listo para comenzar
@@ -88,7 +88,7 @@ export class Partida {
 
         this.generarMazo();
 
-        this.barajarMazo(10);
+        this.barajarMazo(30);
 
         //saca la primera carta del mazo y la reparte
         this.jugadores.forEach(j => {
@@ -107,6 +107,7 @@ export class Partida {
         let valoresCartas = [25, 50, 75, 100, 200]
         let id = 1;
 
+        //genera las cartas de kilometros
         for (let index = 0; index < variaciones; index++) {
 
             if (valoresCartas[index] === 100)
@@ -116,20 +117,63 @@ export class Partida {
 
             for (let index2 = 0; index2 < repeticiones; index2++) {
 
-                this.mazoPrincipal.push(this.generarCarta(id, valoresCartas[index]));
+                this.mazoPrincipal.push(this.generarCarta(id, valoresCartas[index], 'Kilometraje', 'Aumentar'));
 
                 id++;
             }
+        }
 
+        
+        let tipoCartas = [
+            ['Sin Gasolina', 'Pinchazo', 'Accidente', 'Limite Velocidad', 'Semaforo Rojo'],
+            ['Gasolina','Rueda Recambio','Reparacion', 'Fin Limite Velocidad', 'Semaforo Verde'],
+            ['Gasolina Infinita', 'Impinchable', 'As Volante', 'Vehiculo Prioritario']
+        ];
+
+        let tipos = ['Ataque', 'Defensa', 'Escudo']
+
+        variaciones = 5;
+        repeticiones = 3
+
+        // genera las cartas especiales
+        //recorre las 3 listas de tipo cartas
+        for (let index = 0; index < 3; index++) {
+            
+            if(index === 2){
+                variaciones = 4;
+            }
+
+            //recorre la lista seleccionada
+            for (let index2 = 0; index2 < variaciones; index2++) {
+
+                if(index === 0 && index2 === 3){
+                    repeticiones = 4;
+                }else if(index === 0 && index2 === 4){
+                    repeticiones = 5;
+                }else if(index === 1 && index2 === 0){
+                    repeticiones = 6;
+                }else if(index === 1 && index2 === 4){
+                    repeticiones = 14;
+                }else if(index === 2){
+                    repeticiones = 1
+                }
+
+                //genera la cantidad de cartas respectivas para cada tipo
+                for (let index3 = 0; index3 < repeticiones; index3++) {
+                    this.mazoPrincipal.push(this.generarCarta(id, 0, tipos[index], tipoCartas[index][index2]));
+                    id++;
+                } 
+            }
         }
     }
 
     //Funcion que genera una carta nueva
-    generarCarta(id: number, valor: number) {
+    generarCarta(id: number, valor: number, tipo: string, funcion: string) {
         const carta: Carta = {
-            id: id,
-            tipo: 'Kilometraje',
-            valor: valor
+            id,
+            tipo,
+            valor,
+            funcion
         }
 
         return carta;
@@ -140,6 +184,29 @@ export class Partida {
         for (let index = 0; index < repeticiones; index++) {
             this.mazoPrincipal = this.mazoPrincipal.sort(function () { return Math.random() - 0.5 });
         }
+    }
+
+    abandonarPartida(jugador: string, socket: Socket){
+
+        let ganador = {
+            gano: false,
+            jugador: ''
+        }
+
+        const index = this.jugadores.findIndex(j => j.nickname === jugador);
+        this.jugadores[index].cartas.forEach(c => this.mazoPozo.push(c));
+        this.jugadores.splice(index,1);
+
+        if(this.turnoActual?.nickname === jugador){
+            this.siguienteTurno(jugador);
+        }
+
+        if(this.jugadores.length === 1){
+            ganador.gano = true;
+            ganador.jugador = this.jugadores[0].nickname;
+        }
+
+        this.emit('abandono', {jugador, ganador, partida: this.getPartida()}, socket)
     }
 
     //******************* FIN ACCIONES FUERA DE JUEGO *******************
@@ -155,8 +222,6 @@ export class Partida {
             gano: false,
             jugador: ''
         }
-
-        console.log('recibido');
 
         this.jugadores.forEach(j => {
             if (j.nickname === jugador) {
@@ -180,8 +245,115 @@ export class Partida {
         // Esperamos a que la promesa se ejecute para avanzar
         await this.siguienteTurno(jugador);
 
-        this.emit('cartaJugada', { carta: carta, de: jugador, nuevoTurno: this.turnoActual?.nickname, partida: this.getPartida(), ganador: ganador }, socket);
+        this.emit('cartaJugada', { jugada: { tipo: 'kilometros', carta, jugador}, nuevoTurno: this.turnoActual?.nickname, partida: this.getPartida(), ganador: ganador }, socket);
 
+    }
+
+    async jugarAtaque(carta: Carta, de: string, para: string, socket: Socket){
+
+        this.jugadores.forEach(j => {
+            if(j.nickname === para){
+                switch (carta.funcion){
+                    case 'Sin Gasolina':
+                        j.estados.gasolina = false;
+                        break;
+                    case 'Pinchazo': 
+                        j.estados.ruedas = false;
+                        break;
+                    case 'Accidente':
+                        j.estados.coche = false;
+                        break;
+                    case 'Limite Velocidad':
+                        j.estados.libre = false;
+                        break;
+                    case 'Semaforo Rojo':
+                        j.estados.luz = false;
+                        break;
+                }
+            }
+            if(j.nickname === de){
+                // Se encuentra la carta jugada y se retira de la mano del jugador
+                const desecho = j.cartas.splice(j.cartas.findIndex(c => c.id === carta.id), 1);
+                
+                // Luego se la agrega al pozo
+                this.mazoPozo.push(desecho[0]);
+            }
+        })
+
+        await this.siguienteTurno(de);
+        this.emit('cartaJugada', { jugada : {tipo: 'ataque', carta, de, para}, nuevoTurno: this.turnoActual?.nickname, partida: this.getPartida() }, socket);
+    }
+
+    async jugarDefensa(carta: Carta, de: string, socket: Socket){
+
+        this.jugadores.forEach(j => {
+            if(j.nickname === de){
+                switch (carta.funcion){
+                    case 'Gasolina':
+                        j.estados.gasolina = true;
+                        break;
+                    case 'Rueda Recambio': 
+                        j.estados.ruedas = true;
+                        break;
+                    case 'Reparacion':
+                        j.estados.coche = true;
+                        break;
+                    case 'Fin Limite Velocidad':
+                        j.estados.libre = true;
+                        break;
+                    case 'Semaforo Verde':
+                        j.estados.luz = true;
+                        break;
+                }
+            }
+            if(j.nickname === de){
+                // Se encuentra la carta jugada y se retira de la mano del jugador
+                const desecho = j.cartas.splice(j.cartas.findIndex(c => c.id === carta.id), 1);
+                
+                // Luego se la agrega al pozo
+                this.mazoPozo.push(desecho[0]);
+            }
+        })
+        await this.siguienteTurno(de);
+        this.emit('cartaJugada', { jugada : {tipo: 'defensa',carta, de}, nuevoTurno: this.turnoActual?.nickname, partida: this.getPartida() }, socket);
+    }
+
+    async jugarEscudo(carta: Carta, de: string, socket: Socket){
+
+        this.jugadores.forEach(j => {
+            if(j.nickname === de){
+                switch (carta.funcion){
+                    case 'Gasolina Infinita':
+                        j.estados.gasolina = true;
+                        j.estados.gasolinaInfinita = true;
+                        break;
+                    case 'Impinchable': 
+                        j.estados.ruedas = true;
+                        j.estados.impinchable = true;
+                        break;
+                    case 'As Volante':
+                        j.estados.coche = true;
+                        j.estados.asVolante = true;
+                        break;
+                    case 'Vehiculo Prioritario':
+                        j.estados.libre = true;
+                        j.estados.luz = true;
+                        j.estados.prioritario = true;
+                        break;
+                }
+            }
+            if(j.nickname === de){
+                // Se encuentra la carta jugada y se retira de la mano del jugador
+                const desecho = j.cartas.splice(j.cartas.findIndex(c => c.id === carta.id), 1);
+                
+                // Luego se la agrega al pozo
+                this.mazoPozo.push(desecho[0]);
+            }
+        })
+
+        await this.siguienteTurno(de);
+        
+        this.emit('cartaJugada', { jugada : {tipo: 'escudo',carta, de}, nuevoTurno: this.turnoActual?.nickname, partida: this.getPartida() }, socket);
     }
 
     // Se llama para tomar una carta

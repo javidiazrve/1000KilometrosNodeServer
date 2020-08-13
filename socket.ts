@@ -13,6 +13,7 @@ var Socket = (server:any) => {
         let lobby = require('./controladores/lobby')(socket, io);
 
         var partida = require('./controladores/partida')(socket,io);
+
     });
 
 }

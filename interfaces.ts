@@ -1,5 +1,5 @@
 
-export interface Sala{
+export interface Sala {
 
     id: string,
     admin: string,
@@ -8,19 +8,32 @@ export interface Sala{
     todosSentados: boolean,
     turnoActual: number
 
-
 }
 
-export interface Mazo{
+export interface Mazo {
 
     mazoPrincipal: Carta[],
     mazoDescarte: Carta[]
 
 }
 
-export interface Carta{
+export interface Carta {
     id: number,
     tipo: string,
-    valor: number
+    valor: number,
+    funcion: string
+}
+
+export interface EstadosJugador {
+
+    luz: boolean,
+    gasolina: boolean,
+    ruedas: boolean,
+    coche: boolean,
+    libre: boolean,
+    gasolinaInfinita: boolean;
+    impinchable: boolean;
+    asVolante: boolean;
+    prioritario: boolean;
 
 }
