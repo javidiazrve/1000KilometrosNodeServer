@@ -7,6 +7,7 @@ export class Sala{
     id: string = '';
     admin: string = '';
     jugadores: Jugador[] = [];
+    partida?: Partida;
 
     constructor(sala: any){
 
@@ -29,8 +30,8 @@ export class Sala{
 
         this.jugadores.push(jugador);
 
-        socket.emit('nueva-sala', this.getInfoSala());
-        socket.to(this.id).emit('user-changed', { room: this.getInfoSala(), player: jugador.nickname, event: 'joined' });
+        socket.emit('nueva-sala', {sala: this.getInfoSala(), jugador});
+        socket.to(this.id).emit('user-changed', { sala: this.getInfoSala(), player: jugador.nickname, event: 'joined' });
 
     }
 
@@ -54,8 +55,8 @@ export class Sala{
 
         })
 
-        socket.emit('user-changed', { room: this.getInfoSala(), event: 'update' });
-        socket.to(socket.room).emit('user-changed', { room: this.getInfoSala(), event: 'update' });
+        socket.emit('user-changed', { sala: this.getInfoSala(), event: 'update' });
+        socket.to(socket.room).emit('user-changed', { sala: this.getInfoSala(), event: 'update' });
 
     }
 
@@ -70,7 +71,7 @@ export class Sala{
             }
         }
 
-        socket.broadcast.to(this.id).emit('user-changed', { room: this.getInfoSala(), player: jugador, event: 'left' });
+        socket.broadcast.to(this.id).emit('user-changed', { sala: this.getInfoSala(), player: jugador, event: 'left' });
         
         socket.leave(this.id);
 

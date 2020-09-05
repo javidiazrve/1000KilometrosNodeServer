@@ -13,12 +13,12 @@ var Lobby = (socket: Socket, io: Server) => {
 
     //************** ACCIONES FUERA DE SALA **************
 
-    socket.on('crearSala', (data:any) => {
+    socket.on('crearSala', (nickname:string) => {
         
         const salaID = sala.toString();
         sala = sala + 1;
 
-        jugadorActual = new Jugador(data.nickname);
+        jugadorActual = new Jugador(nickname);
         socket.jugador = jugadorActual;
         socket.room = salaID;
         socket.join(salaID);
@@ -31,7 +31,7 @@ var Lobby = (socket: Socket, io: Server) => {
         
         rooms[salaID].sala = salaActual;
 
-        socket.emit('nueva-sala', salaActual);
+        socket.emit('nueva-sala', {sala: salaActual, jugador: jugadorActual});
 
     })
 
@@ -39,11 +39,10 @@ var Lobby = (socket: Socket, io: Server) => {
 
         jugadorActual = new Jugador(data.nickname);
         socket.jugador = jugadorActual;
-        socket.room = data.sala;
-        socket.join(data.sala);
+        socket.join(data.id);
+        socket.room = data.id;
 
-        salaActual = rooms[data.sala].sala;
-
+        salaActual = rooms[data.id].sala;
         salaActual.nuevoJugador(jugadorActual, socket);
 
     })

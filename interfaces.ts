@@ -21,7 +21,9 @@ export interface Carta {
     id: number,
     tipo: string,
     valor: number,
-    funcion: string
+    funcion: string,
+    icon: string,
+    clase: string
 }
 
 export interface EstadosJugador {

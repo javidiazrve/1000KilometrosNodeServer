@@ -1,4 +1,4 @@
-import { Mazo, Carta } from "../interfaces";
+import { Carta } from "../interfaces";
 import { Server, Socket } from 'socket.io';
 import { Partida } from "../clases/partida";
 
@@ -43,7 +43,6 @@ var partida = (socket: Socket, io: Server) => {
 
     socket.on('jugarCarta', (carta: Carta, para: string) => {
 
-        console.log('jugada: ',carta.tipo);
         
         switch (carta.tipo) {
             case 'Kilometraje':
@@ -63,16 +62,20 @@ var partida = (socket: Socket, io: Server) => {
 
     })
 
-    socket.on('pasar', () => {
+    socket.on('tomarCartaMazo', () => {
 
-        partida.pasar(socket);
+        partida.tomarCartaMazo(socket);
 
     })
 
-    socket.on('tomarCarta', () => {
+    socket.on('tomarCartaPozo', () => {
 
-        partida.tomarCarta(socket);
+        partida.tomarCartaPozo(socket);
 
+    })
+
+    socket.on('descartarCarta', (carta: Carta) => {
+        partida.descartarCarta(carta, socket);
     })
 
     //******************* FIN DE JUGADAS **************************************
