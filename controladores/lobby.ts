@@ -47,17 +47,22 @@ var Lobby = (socket: Socket, io: Server) => {
 
     })
 
-    socket.on('validar-sala', (room: any)=>{
+    socket.on('validar-sala', (room: any, jugador: string)=>{
 
         var existe = false;
 
         if(rooms[room]){
             existe = true;
+            var jug = rooms[room].sala.jugadores.find(j => j.nickname === jugador);
+            var full = rooms[room].sala.jugadores.length === 5;
+            var ocupado = false;
+            if(jug){
+                ocupado = true;
+            }
+            socket.emit('sala-validada', {existe: true, ocupado, full});
         }else{
-            existe = false;
+            socket.emit('sala-validada', {existe: false});
         }
-
-        socket.emit('sala-validada', {existe: existe});
 
     })
 
